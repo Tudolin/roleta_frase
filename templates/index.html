@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frase do Dia - Roleta</title>
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<style>
+    body {
+        background-color: #f8f9fa;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+    }
+    .container {
+        position: relative; /* Para permitir posicionamento absoluto da imagem */
+        text-align: center;
+    }
+    .mascote {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 700px; /* Ajuste o tamanho conforme necessário */
+        opacity: 0.2; /* Transparência para não interferir na leitura */
+        z-index: -999; /* Garante que fique atrás das roletas */
+    }
+    .roleta-container {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 20px;
+    }
+    .roleta {
+        font-size: 2rem;
+        font-weight: bold;
+        min-width: 150px;
+        text-align: center;
+        border: 2px solid #007bff;
+        padding: 10px;
+        border-radius: 5px;
+        background-color: #ffffff;
+    }
+    .logs {
+        margin-top: 20px;
+        max-height: 200px;
+        overflow-y: auto;
+        border: 1px solid #ddd;
+        padding: 10px;
+        background-color: #fff;
+        border-radius: 5px;
+    }
+</style>
+</head>
+<body>
+<div class="container text-center mt-5">
+    <h1 class="mb-4">Frase do Dia</h1>
+
+    <img src="{{ url_for('static', filename='images/mascote.png') }}" alt="Mascote" class="mascote">
+    <!-- Caixa de seleção para o nome -->
+    <select id="nome" class="form-select mb-3" style="max-width: 300px; margin: 0 auto;">
+        <option value="Andres">Andres</option>
+        <option value="Geovanni">Geovanni</option>
+        <option value="Rafael">Rafael</option>
+    </select>
+
+    <div class="roleta-container">
+        <div id="roleta-inicio" class="roleta">---</div>
+        <div id="roleta-publico" class="roleta">---</div>
+        <div id="roleta-complemento" class="roleta">---</div>
+    </div>
+    <button id="sortearBtn" class="btn btn-primary mt-4">Sortear Frase</button>
+
+    <!-- Logs -->
+    <div class="logs mt-4">
+        <h5>Logs:</h5>
+        <ul id="log-list" class="list-unstyled">
+            {% for log in logs %}
+                <li>{{ log.nome }} : {{ log.frase }} Data: {{ log.data }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<!-- Bootstrap JS e dependências -->
+<script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+<script>
+    // Listas recebidas do backend via Jinja2
+    const inicios = {{ inicios | tojson }};
+    const publicos = {{ publicos | tojson }};
+    const complementos = {{ complementos | tojson }};
+
+    // Lembrar o nome selecionado usando localStorage
+    const nomeSelect = document.getElementById('nome');
+    const savedNome = localStorage.getItem('nomeSelecionado');
+    if (savedNome) {
+        nomeSelect.value = savedNome;
+    }
+
+    nomeSelect.addEventListener('change', () => {
+        localStorage.setItem('nomeSelecionado', nomeSelect.value);
+    });
+
+    document.getElementById('sortearBtn').addEventListener('click', function() {
+        const roletaInicio = document.getElementById('roleta-inicio');
+        const roletaPublico = document.getElementById('roleta-publico');
+        const roletaComplemento = document.getElementById('roleta-complemento');
+
+        // Função para simular o efeito de roleta
+        function girarRoleta(elemento, valores, duracao, callback) {
+            let inicio = Date.now();
+            const intervalo = setInterval(() => {
+                const tempoPassado = Date.now() - inicio;
+                if (tempoPassado >= duracao) {
+                    clearInterval(intervalo);
+                    const valorFinal = valores[Math.floor(Math.random() * valores.length)];
+                    elemento.textContent = valorFinal;
+                    if (callback) callback(valorFinal);
+                    return;
+                }
+                const valorAleatorio = valores[Math.floor(Math.random() * valores.length)];
+                elemento.textContent = valorAleatorio;
+            }, 100); // Atualiza a cada 100ms
+        }
+
+        // Gira cada parte da frase
+        girarRoleta(roletaInicio, inicios, 2000, (valorFinalInicio) => {
+            girarRoleta(roletaPublico, publicos, 2000, (valorFinalPublico) => {
+                girarRoleta(roletaComplemento, complementos, 2000, (valorFinalComplemento) => {
+                    // Exibe a frase final completa
+                    const fraseFinal = `${valorFinalInicio}, ${valorFinalPublico}, ${valorFinalComplemento}`;
+                    console.log(`Frase final: ${fraseFinal}`);
+
+                    // Envia o log para o backend
+                    const nome = nomeSelect.value;
+                    fetch('/log', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ nome, frase: fraseFinal })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Adiciona o log na lista de logs
+                        const logList = document.getElementById('log-list');
+                        const newLog = document.createElement('li');
+                        newLog.textContent = `${data.log.nome} : ${data.log.frase} Data: ${data.log.data}`;
+                        logList.appendChild(newLog);
+                    });
+                });
+            });
+        });
+    });
+</script>
+</body>
+</html>
