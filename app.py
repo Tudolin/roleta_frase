@@ -10,10 +10,9 @@ inicios = ["E aí", "Oi", "Bom dia", "Fala", "Opa"]
 publicos = ["pessoal", "gente", "time", "galera", "turma", "equipe"]
 complementos = [
    "tudo certo?",
-   "chuchu beleza?",
    "vamos nessa!",
    "bora lá!",
-   "como estão as coisas?",
+   "como estão?",
    "espero que estejam bem!",
    "prontos para começar?",
    "tudo tranquilo por aí?",
